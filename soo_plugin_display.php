@@ -1,7 +1,7 @@
 <?php
 
 $plugin['name'] = 'soo_plugin_display';
-$plugin['version'] = '0.1.1';
+$plugin['version'] = '0.1.2';
 $plugin['author'] = 'Jeff Soo';
 $plugin['author_uri'] = 'http://ipsedixit.net/txp/';
 $plugin['description'] = 'Display info about installed plugins';
@@ -16,220 +16,277 @@ if (!defined('txpinterface'))
 
 # --- BEGIN PLUGIN CODE ---
 
-global $soo_plugin_display_prefs;
+  //---------------------------------------------------------------------//
+ //						soo_plugin_pref compatibility					//
+//---------------------------------------------------------------------//
 
-$soo_plugin_display_prefs = function_exists('soo_plugin_pref_vals') ?
-    soo_plugin_pref_vals('soo_plugin_display') : soo_plugin_display_defaults();
-foreach ( $soo_plugin_display_prefs as $name => $val )
-    $soo_plugin_display_prefs[$name] = is_array($val) ? $val['val'] : $val;
 
-@require_plugin('soo_plugin_pref');                // optional
+global $soo_plugin_display_prefs;
+
+@require_plugin('soo_plugin_pref');				// optional
 add_privs('plugin_prefs.soo_plugin_display','1,2');
 add_privs('plugin_lifecycle.soo_plugin_display','1,2');
-register_callback('soo_plugin_display_prefs', 'plugin_prefs.soo_plugin_display');
-register_callback('soo_plugin_display_prefs', 'plugin_lifecycle.soo_plugin_display');
+register_callback('soo_plugin_display_prefs', 'plugin_prefs.soo_plugin_display');
+register_callback('soo_plugin_display_prefs', 'plugin_lifecycle.soo_plugin_display');
 
-function soo_plugin_display_prefs( $event, $step ) {
-    if ( function_exists('soo_plugin_pref') )
-        return soo_plugin_pref($event, $step, soo_plugin_display_defaults());
-    if ( substr($event, 0, 12) == 'plugin_prefs' ) {
-        $plugin = substr($event, 12);
-        $message = '<p><br /><strong>' . gTxt('edit') . " $plugin " .
-            gTxt('edit_preferences') . ':</strong><br />' . gTxt('install_plugin') .
-            ' <a href="http://ipsedixit.net/txp/92/soo_plugin_pref">soo_plugin_pref</a></p>';
-        pagetop(gTxt('edit_preferences') . " &#8250; $plugin", $message);
-    }
+if ( function_exists('soo_plugin_pref_vals') )
+	$soo_plugin_display_prefs = soo_plugin_pref_vals('soo_plugin_display');
+else 
+	foreach ( soo_plugin_display_defaults() as $name => $val )
+		$soo_plugin_display_prefs[$name] = $val;
+
+function soo_plugin_display_prefs( $event, $step ) {
+	if ( function_exists('soo_plugin_pref') )
+		return soo_plugin_pref($event, $step, soo_plugin_display_defaults());
+	if ( substr($event, 0, 12) == 'plugin_prefs' ) {
+		$plugin = substr($event, 12);
+		$message = '<p><br /><strong>' . gTxt('edit') . " $plugin " . 
+			gTxt('edit_preferences') . ':</strong><br />' . gTxt('install_plugin') . 
+			' <a href="http://ipsedixit.net/txp/92/soo_plugin_pref">soo_plugin_pref</a></p>';
+		pagetop(gTxt('edit_preferences') . " &#8250; $plugin", $message);
+	}
 }
 
-function soo_plugin_display_defaults( ) {
-    return array(
-        'default_form'        =>    array(
-            'val'    =>    '',
-            'html'    =>    'text_input',
-            'text'    =>    'Default output form for <b>soo_plugin_display</b> tag',
-        ),
-        'strip_style'        =>    array(
-            'val'    =>    0,
-            'html'    =>    'yesnoradio',
-            'text'    =>    'Remove leading &lt;style&gt; element from Help text?',
-        ),
-        'strip_title'        =>    array(
-            'val'    =>    0,
-            'html'    =>    'yesnoradio',
-            'text'    =>    'Remove first &lt;h1&gt; element from Help text?',
-        ),
-        'size_format'        =>    array(
-            'val'    =>    '{size}&nbsp;KB',
-            'html'    =>    'text_input',
-            'text'    =>    'Default format string for <b>soo_plugin_size</b>',
-        ),
-        'show_line_numbers'    =>    array(
-            'val'    =>    ':',
-            'html'    =>    'text_input',
-            'text'    =>    'Text to append to line numbers (leave blank to hide numbers)',
-        ),
-    );
+function soo_plugin_display_defaults( ) {
+	return array(
+		'default_form'		=>	array(
+			'val'	=>	'',
+			'html'	=>	'text_input',
+			'text'	=>	'Default output form for <b>soo_plugin_display</b> tag',
+		),
+		'strip_style'		=>	array(
+			'val'	=>	0,
+			'html'	=>	'yesnoradio',
+			'text'	=>	'Remove leading &lt;style&gt; element from Help text?',
+		),
+		'strip_title'		=>	array(
+			'val'	=>	0,
+			'html'	=>	'yesnoradio',
+			'text'	=>	'Remove first &lt;h1&gt; element from Help text?',
+		),
+		'size_format'		=>	array(
+			'val'	=>	'{size}&nbsp;KB',
+			'html'	=>	'text_input',
+			'text'	=>	'Default format string for <b>soo_plugin_size</b>',
+		),
+		'show_line_numbers'	=>	array(
+			'val'	=>	':',
+			'html'	=>	'text_input',
+			'text'	=>	'Text to append to line numbers (leave blank to hide numbers)',
+		),
+	);
 }
 
-function soo_plugin_display( $atts, $thing = '' ) {
-    global $soo_plugin_display, $soo_plugin_display_prefs;
-    extract(lAtts(array(
-        'name'            =>    '',
-        'prefix'        =>    '',
-        'form'            =>    $soo_plugin_display_prefs['default_form'],
-        'show_inactive'    =>    0,
-        'sort'            =>    'name asc',
-        'wraptag'        =>    '',
-        'break'            =>    '',
-        'class'            =>    '',
-        'html_id'        =>    '',
-    ), $atts));
+  //---------------------------------------------------------------------//
+ //									Tags								//
+//---------------------------------------------------------------------//
 
-    $columns = 'author, author_uri, version, description, name, ' .
-        'round(char_length(code)/1024, 1) as size' . ( $name ? ', help, code' : '' );
-
-    if ( $name or $prefix )
-        $where = ( $name ? "name = '$name'" : "name like '$prefix%'" )
-            . ( ( $show_inactive or $name ) ? '' : ' and status = 1' );
-    else
-        $where = $show_inactive ? 1 : 'status = 1';
-    $where .= " order by $sort";
-
-    if ( ! $data = safe_rows($columns, 'txp_plugin', $where) )
-        return;
-
-    foreach ( $data as $r ) {
-        $soo_plugin_display = $r;
-        $out[] = $thing ? parse($thing) : parse_form($form);
-    }
-
-    if ( isset($out) )
-        return doWrap($out, $wraptag, $break, $class, '', '', '', $html_id);
+// tag to select plugin(s) for display
+// can be used as single w/form or container
+// when getting multiple plugins code and help are not retrieved
+function soo_plugin_display( $atts, $thing = '' ) {
+	global $soo_plugin_display, $soo_plugin_display_prefs;
+	extract(lAtts(array(
+		'name'			=>	'',
+		'prefix'		=>	'',
+		'form'			=>	$soo_plugin_display_prefs['default_form'],
+		'show_inactive'	=>	0,
+		'sort'			=>	'name asc',
+		'wraptag'		=>	'',
+		'break'			=>	'',
+		'class'			=>	'',
+		'html_id'		=>	'',
+	), $atts));
+	
+	$columns = 'author, author_uri, version, description, name, ' .
+		'round(char_length(code)/1024, 1) as size' . ( $name ? ', help, code' : '' );
+		
+	if ( $name or $prefix )
+		$where = ( $name ? "name = '$name'" : "name like '$prefix%'" )
+			. ( ( $show_inactive or $name ) ? '' : ' and status = 1' );
+	else
+		$where = $show_inactive ? 1 : 'status = 1';
+	$where .= " order by $sort";
+	
+	if ( ! $data = safe_rows($columns, 'txp_plugin', $where) ) 
+		return;
+		
+	foreach ( $data as $r ) {
+		$soo_plugin_display = $r;
+		$out[] = $thing ? parse($thing) : parse_form($form);
+	}
+	
+	if ( isset($out) ) 
+		return doWrap($out, $wraptag, $break, $class, '', '', '', $html_id);
 }
 
-function soo_plugin_author( $atts ) { return _soo_plugin_field('author_uri', $atts); }
-function soo_plugin_name( $atts ) { return _soo_plugin_field('name', $atts); }
-function soo_plugin_author_uri( ) { return _soo_plugin_field('author_uri'); }
-function soo_plugin_version( ) { return _soo_plugin_field('version'); }
-function soo_plugin_description( ) { return _soo_plugin_field('description'); }
+// basic output tags: display field direct from database
+function soo_plugin_author_uri( ) { return _soo_plugin_field('author_uri'); }
+function soo_plugin_version( ) { return _soo_plugin_field('version'); }
+function soo_plugin_description( ) { return _soo_plugin_field('description'); }
 
-function soo_plugin_help( $atts ) {
-    global $soo_plugin_display_prefs;
-    extract(lAtts(array(
-        'strip_style'    =>    $soo_plugin_display_prefs['strip_style'],
-        'strip_title'    =>    $soo_plugin_display_prefs['strip_title'],
-    ), $atts));
-    $help = _soo_plugin_field('help');
-    if ( $strip_style and preg_match('/^<style/', $help) )
-        $help = preg_replace('/^[\s\S]+?<\/style>([\s\S]+)$/', '$1', $help);
-    if ( $strip_title )
-        $help = preg_replace('/^([\s\S]+?)<h1[\s\S]+?<\/h1>([\s\S]+)$/', '$1$2', $help);
-    return $help;
+// as above, but with option to make output a link to author's website
+function soo_plugin_author( $atts ) { return _soo_plugin_field('author_uri', $atts); }
+function soo_plugin_name( $atts ) { return _soo_plugin_field('name', $atts); }
+
+// display plugin help, with options to remove leading style and/or h1 elements,
+// and option to restrict display to named section
+function soo_plugin_help( $atts ) { 
+	global $soo_plugin_display_prefs;
+	extract(lAtts(array(
+		'strip_style'	=>	$soo_plugin_display_prefs['strip_style'],
+		'strip_title'	=>	$soo_plugin_display_prefs['strip_title'],
+		'section_id'	=>	'',		// HTML id for header element to display
+	), $atts));
+	$help = _soo_plugin_field('help');
+	
+	// remove leading <style> element
+	if ( $strip_style and preg_match('/^<style/', $help) )
+		$help = preg_replace('/^[\s\S]+?<\/style>([\s\S]+)$/', '$1', $help);
+		
+	// remove leading <h1> element
+	if ( $strip_title )
+		$help = preg_replace('/^([\s\S]+?)<h1[\s\S]+?<\/h1>([\s\S]+)$/', '$1$2', $help);
+	
+	// display from named header element to next header with same or lower h-level
+	if ( $section_id ) {
+		$pattern = "/^([\s\S]+)(<h(\d)[^>]+id=['\"]$section_id('|\").+?>[\s\S]+)$/";
+		if ( preg_match($pattern, $help, $match) ) {
+			list( , , $remainder, $h_level) = $match;
+			$help = '';
+			$pattern = '/^([\s\S]+?)(<h(\d)[\s\S]+)$/';
+			while ( preg_match($pattern, $remainder, $match) ) {
+				list( , $keep, $remainder, $next_level) = $match;
+				$help .= $keep;
+				if ( $h_level >= $next_level )
+					$remainder = '';
+			}
+			if ( ! $help )
+				$help = $remainder;
+		}
+	}
+	return $help;
 }
 
-function soo_plugin_size( $atts ) {
-// installed code size in KB
-    global $soo_plugin_display_prefs;
-    extract(lAtts(array(
-        'format'    =>    $soo_plugin_display_prefs['size_format'],
-    ), $atts));
-    $size = _soo_plugin_field('size');
-    return str_replace('{size}', $size, $format);
+// display installed code size in KB
+function soo_plugin_size( $atts ) {
+	global $soo_plugin_display_prefs;
+	extract(lAtts(array(
+		'format'	=>	$soo_plugin_display_prefs['size_format'],
+	), $atts));
+	$size = _soo_plugin_field('size');
+	return str_replace('{size}', $size, $format);
 }
 
-function soo_plugin_code( $atts ) {
-    global $soo_plugin_display_prefs;
-    extract(lAtts(array(
-        'show_line_numbers'        =>    $soo_plugin_display_prefs['show_line_numbers'],
-        'reindex_lines'    =>    0,
-        'function'                =>    '',
-        'php_class'                =>    '',
-        'class'                    =>    'soo_plugin_code',
-        'html_id'                =>    '',
-    ), $atts));
-    $keys = array('bg', 'comment', 'default', 'html', 'keyword', 'string');
-    foreach ( $keys as $k ) {
-        $find[] = 'style="color: ' . ini_get("highlight.$k") . '"';
-        $replace[] = "class=\"php_$k\"";
-    }
-    $find[] = '<code>';
-    $find[] = '</code>';
-    $raw_code = trim(_soo_plugin_field('code'));
-
-    $start_line = 1;
-    $match_index = 2;
-    $safety_check = true;
-
-    if ( $php_class and $function ) {
-        $pattern = '/([\s\S]*(abstract|)\s*class\s+'
-            . $php_class . '\s+.*?\{[\s\S]+?)(\t(public|private|protected)?\s*function\s+'
-            . $function . '\s*\([\s\S]+?\n\t}.*)[\s\S]*/';
-        $match_index ++;
-    }
-
-    elseif ( $function )
-        $pattern = '/([\s\S]*)((public|private|protected)?\s*function\s+'
-            . $function . '\s*\([\s\S]+?\n}.*)/';
-
-    elseif ( $php_class )
-        $pattern = '/([\s\S]*)((abstract|)\s*class\s+'
-            . $php_class . '\s+.*?\{[\s\S]+?\n}.*)[\s\S]*/';
-
-    else
-        $safety_check = false;
-
-    if ( $safety_check ) {
-        if ( $function and ! preg_match("/$function\s*\(/", $raw_code) )
-            return;
-        if ( $php_class and ! preg_match("/class\s*$php_class\s+/", $raw_code) )
-            return;
-    }
-
-    if ( isset($pattern) ) {
-        if ( preg_match($pattern, $raw_code, $match) ) {
-            $raw_code = $match[$match_index];
-            $start_line = $reindex_lines ?
-                $reindex_lines : count(explode("\n", $match[1]));
-        }
-        else
-            return;
-    }
-
-    $lines = explode("\n", $raw_code);
-    $total_lines = $start_line + count($lines) - 1;
-    foreach ( $lines as $i => $line ) {
-        if ( preg_match('/\S/', $line) )
-            $line = preg_replace(
-                '/&lt;\?php&nbsp;([\s\S]*)&nbsp;<\/span><span[^>]*>\?&gt;/', '$1',
-                str_replace($find, $replace,
-                    highlight_string("<?php " . $line . " ?>", true)));
-        if ( $show_line_numbers ) {
-            $i += $start_line;
-            $line = "$i $show_line_numbers $line";
-            if ( $i < 1000 and $total_lines > 999 ) $line = sp . $line;
-            if ( $i < 100 and $total_lines > 99 ) $line = sp . $line;
-            if ( $i < 10 ) $line = sp . $line;
-        }
-        $code[] = $line;
-    }
-
-    $tag_atts = ( $class ? " class=\"$class\"" : '' ) . ( $html_id ? " id=\"$html_id\"" : '' );
-
-    return "<code$tag_atts>" . implode("<br />\n", $code) . '</code>';
+// display plugin source code
+// code highlighting with named classes for styling
+// various options for line numbering
+// display full source or named function, class, or method
+function soo_plugin_code( $atts ) {
+	global $soo_plugin_display_prefs;
+	extract(lAtts(array(
+		'show_line_numbers'		=>	$soo_plugin_display_prefs['show_line_numbers'],
+		'reindex_lines'	=>	0,
+		'function'				=>	'',
+		'php_class'				=>	'',
+		'class'					=>	'soo_plugin_code',
+		'html_id'				=>	'',
+	), $atts));
+	
+	// names of code highlight types from ini_get()
+	// highlight_string() output style attributes will be replaced by named classes
+	$keys = array('bg', 'comment', 'default', 'html', 'keyword', 'string');
+	foreach ( $keys as $k ) {
+		$find[] = 'style="color: ' . ini_get("highlight.$k") . '"';
+		$replace[] = "class=\"php_$k\"";
+	}
+	$find[] = '<code>';
+	$find[] = '</code>';
+	$raw_code = trim(_soo_plugin_field('code'));
+	
+	$start_line = 1;
+	$match_index = 2;
+	$safety_check = true;
+	
+	// find named method: assumes end brace one tab in from start of line
+	if ( $php_class and $function ) {
+		$pattern = '/([\s\S]*(abstract|)\s*class\s+' 
+			. $php_class . '\s+.*?\{[\s\S]+?)(\t(public|private|protected)?\s*function\s+' 
+			. $function . '\s*\([\s\S]+?\n\t}.*)[\s\S]*/';
+		$match_index ++;
+	}
+	
+	// find named function: assumes end brace at start of line
+	elseif ( $function )
+		$pattern = '/([\s\S]*)((public|private|protected)?\s*function\s+' 
+			. $function . '\s*\([\s\S]+?\n}.*)/';
+	
+	// find named class: assumes end brace at start of line
+	elseif ( $php_class )
+		$pattern = '/([\s\S]*)((abstract|)\s*class\s+' 
+			. $php_class . '\s+.*?\{[\s\S]+?\n}.*)[\s\S]*/';
+	
+	else
+		$safety_check = false;
+	
+	// safety check is because the preg_match() can take a long time if there is no match
+	if ( $safety_check ) {
+		if ( $function and ! preg_match("/$function\s*\(/", $raw_code) )
+			return;
+		if ( $php_class and ! preg_match("/class\s*$php_class\s+/", $raw_code) )
+			return;
+	}
+	
+	if ( isset($pattern) ) {
+		if ( preg_match($pattern, $raw_code, $match) ) {
+			$raw_code = $match[$match_index];
+			
+			// if not reindexing, find starting line number in full source code
+			$start_line = $reindex_lines ? 
+				$reindex_lines : count(explode("\n", $match[1]));
+		}
+		else 
+			return;
+	}
+	
+	$lines = explode("\n", $raw_code);
+	$total_lines = $start_line + count($lines) - 1;
+	foreach ( $lines as $i => $line ) {
+		if ( preg_match('/\S/', $line) )
+			$line = preg_replace(
+				'/&lt;\?php&nbsp;([\s\S]*)&nbsp;<\/span><span[^>]*>\?&gt;/', '$1',
+				str_replace($find, $replace, 
+					highlight_string("<?php " . $line . " ?>", true)));
+		if ( $show_line_numbers ) {
+			$i += $start_line;
+			$line = "$i $show_line_numbers $line";
+			if ( $i < 1000 and $total_lines > 999 ) $line = sp . $line;
+			if ( $i < 100 and $total_lines > 99 ) $line = sp . $line;
+			if ( $i < 10 ) $line = sp . $line;
+		}
+		$code[] = $line;
+	}
+	
+	$tag_atts = ( $class ? " class=\"$class\"" : '' ) . ( $html_id ? " id=\"$html_id\"" : '' );
+	
+	return "<code$tag_atts>" . implode("<br />\n", $code) . '</code>';
 }
 
+  //---------------------------------------------------------------------//
+ //							Support Functions							//
+//---------------------------------------------------------------------//
 
-function _soo_plugin_field( $field, $atts = null ) {
-    if ( is_array($atts) )
-        extract(lAtts(array(
-            'link'    =>    1,
-        ), $atts));
-    global $soo_plugin_display;
-    $author_uri = $soo_plugin_display['author_uri'];
-    if ( isset($soo_plugin_display[$field]) ) {
-        $out = $soo_plugin_display[$field];
-        return ( ! empty($link) and $author_uri ) ? href($out, $author_uri) : $out;
-    }
+function _soo_plugin_field( $field, $atts = null ) {
+	if ( is_array($atts) )
+		extract(lAtts(array(
+			'link'	=>	1,
+		), $atts));
+	global $soo_plugin_display;
+	$author_uri = $soo_plugin_display['author_uri'];
+	if ( isset($soo_plugin_display[$field]) ) {
+		$out = $soo_plugin_display[$field];
+		return ( ! empty($link) and $author_uri ) ? href($out, $author_uri) : $out;
+	}
 }
 
 # --- END PLUGIN CODE ---
@@ -370,8 +427,11 @@ h4. Attributes
 
 * @strip_style@ _(boolean)_ whether or not to remove any leading &lt;style> element (%(default)default% "1", can be changed in prefs)
 * @strip_title@ _(boolean)_ whether or not to remove any leading &lt;h1> element (%(default)default% "1", can be changed in prefs)
+* @section_id@ _(HTML id value)_ start display from identified header element, continue till next header of same or lower level
 
 @strip_style@ looks for an opening @<style>@ tag at the very start of the Help section. @strip_title@ looks for the first occurence of @<h1>@. Both do a non-greedy match looking for the closing tag.
+
+With @section_id@, display begins from the HTML header element with the specified id. Display continues till the next HTML header with the same or lower level (<h2> considered lower than <h3>) or until the end if no such header is found.
 
 h3(#soo_plugin_code). soo_plugin_code
 
@@ -444,6 +504,11 @@ If you have the "soo_plugin_pref":http://ipsedixit.net/txp/92/soo_plugin_pref pr
 * Default value for @soo_plugin_code@'s @show_line_numbers@ attribute
 
 h2(#history). Version History
+
+h3. 0.1.2 (9/26/2009)
+
+New attribute for @soo_plugin_help@:
+* @section_id@, start output from header element with specified HTML id, continuing until next header element with same or lower level
 
 h3. 0.1.1 (9/22/2009)
 

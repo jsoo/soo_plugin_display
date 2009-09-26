@@ -90,7 +90,7 @@ function soo_plugin_display( $atts, $thing = '' ) {
 
     if ( $name or $prefix )
         $where = ( $name ? "name = '$name'" : "name like '$prefix%'" )
-            . ( $show_inactive or $name ? '' : ' and status = 1' );
+            . ( ( $show_inactive or $name ) ? '' : ' and status = 1' );
     else
         $where = $show_inactive ? 1 : 'status = 1';
     $where .= " order by $sort";
@@ -444,6 +444,10 @@ If you have the "soo_plugin_pref":http://ipsedixit.net/txp/92/soo_plugin_pref pr
 * Default value for @soo_plugin_code@'s @show_line_numbers@ attribute
 
 h2(#history). Version History
+
+h3. 0.1.1 (9/22/2009)
+
+* Fixed: SQL bug in list mode
 
 h3. 0.1 (9/18/2009)
 

@@ -1,7 +1,7 @@
 <?php
 
 $plugin['name'] = 'soo_plugin_display';
-$plugin['version'] = '0.1.3';
+$plugin['version'] = '0.1.4';
 $plugin['author'] = 'Jeff Soo';
 $plugin['author_uri'] = 'http://ipsedixit.net/txp/';
 $plugin['description'] = 'Display info about installed plugins';
@@ -148,7 +148,7 @@ function soo_plugin_help( $atts ) {
 		'strip_style'	=>	$soo_plugin_display_prefs['strip_style'],
 		'strip_title'	=>	$soo_plugin_display_prefs['strip_title'],
 		'section_id'	=>	'',		// HTML id for header element to display
-		'h_level'		=>	0,		// if section_id, transpose header levels starting here
+		'h_plus'		=>	0,		// transpose header levels by this amount
 	), $atts));
 	$help = _soo_plugin_field('help');
 	
@@ -179,6 +179,21 @@ function soo_plugin_help( $atts ) {
 				$help = $remainder;
 		}
 	}
+		
+		// transpose HTML header levels.
+	if ( $h_plus ) {
+		for ( $i = 1; $i <= 6; $i++ ) {
+			$j = $i + $h_plus;
+			if ( $j < 1 ) $j = 1;
+			if ( $j > 6 ) $j = 6;
+			$old_tag[] = "<h$i";
+			$old_tag[] = "</h$i";
+			$new_tag[] = "<h$j";
+			$new_tag[] = "</h$j";
+		}
+		$help = str_replace($old_tag, $new_tag, $help);		
+	}
+	
 	return $help;
 }
 
@@ -465,10 +480,13 @@ h4. Attributes
 * @strip_style@ _(boolean)_ whether or not to remove any leading @<style>@ element (%(default)default% "1", can be changed in prefs)
 * @strip_title@ _(boolean)_ whether or not to remove any leading @<h1>@ element (%(default)default% "1", can be changed in prefs)
 * @section_id@ _(HTML id value)_ start display from identified header element, continue till next header of same or lower level
+* @h_plus@ _(integer)_ transpose HTML header levels by this amount
 
 @strip_style@ looks for an opening @<style>@ tag at the very start of the Help section. @strip_title@ looks for the first occurence of @<h1>@. Both do a non-greedy match looking for the closing tag.
 
 With @section_id@, display begins from the HTML header element with the specified id. Display continues till the next HTML header with the same or lower level (@<h2>@ considered lower than @<h3>@, for example) or until the end if no such header is found.
+
+@h_plus@ can be helpful when breaking a long help text into several web pages, in conjuction with @section_id@. For example, @h_plus="-2"@ will transpose all @h6@ elements to @h4@, all @h5@ elements to @h3@, etc.
 
 h3(#soo_plugin_code). soo_plugin_code
 
@@ -542,8 +560,13 @@ If you have the "soo_plugin_pref":http://ipsedixit.net/txp/92/soo_plugin_pref pr
 * Default value for @soo_plugin_help@'s @strip_title@ attribute
 * Default value for @soo_plugin_size@'s @format@ attribute
 * Default value for @soo_plugin_code@'s @show_line_numbers@ attribute
+* Default value for @soo_plugin_code@'s @tab_stop@ attribute
 
 h2(#history). Version History
+
+h3. 0.1.4 (7/4/2010, USA Independence Day)
+
+@soo_plugin_help@ output can have HTML header levels transposed, using the @h_plus@ attribute
 
 h3. 0.1.3 (9/27/2009)
 

@@ -253,7 +253,7 @@ function soo_plugin_code( $atts ) {
 	
 		// find named class: assumes end brace at start of line
 	elseif ( $php_class )
-		$pattern = '/([\s\S]*)((abstract|)\s*class\s+' 
+		$pattern = '/([\s\S]*?)((abstract|)\s*class\s+' 
 			. $php_class . '\s+.*?\{[\s\S]+?\n}.*)[\s\S]*/';
 	
 	else

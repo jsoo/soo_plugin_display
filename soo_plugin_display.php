@@ -1,7 +1,7 @@
 <?php
 
 $plugin['name'] = 'soo_plugin_display';
-$plugin['version'] = '0.1.4';
+$plugin['version'] = '0.2.0';
 $plugin['author'] = 'Jeff Soo';
 $plugin['author_uri'] = 'http://ipsedixit.net/txp/';
 $plugin['description'] = 'Display info about installed plugins';
@@ -74,6 +74,11 @@ function soo_plugin_display_defaults( ) {
 			'val'	=>	'{size}&nbsp;KB',
 			'html'	=>	'text_input',
 			'text'	=>	'Default format string for <b>soo_plugin_size</b>',
+		),
+		'highlight'			=>	array(
+			'val'	=>	1,
+			'html'	=>	'yesnoradio',
+			'text'	=>	'Add syntax highlighting to <b>soo_plugin_code</b>?',
 		),
 		'show_line_numbers'	=>	array(
 			'val'	=>	':',
@@ -214,6 +219,7 @@ function soo_plugin_size( $atts ) {
 function soo_plugin_code( $atts ) {
 	global $soo_plugin_display_prefs;
 	extract(lAtts(array(
+		'highlight'				=>	1,
 		'show_line_numbers'		=>	$soo_plugin_display_prefs['show_line_numbers'],
 		'reindex_lines'			=>	0,
 		'tab_stop'				=>	$soo_plugin_display_prefs['tab_stop'],
@@ -223,18 +229,7 @@ function soo_plugin_code( $atts ) {
 		'html_id'				=>	'',
 	), $atts));
 	
-		// names of code highlight types from ini_get()
-		// highlight_string() output style attributes will be replaced by named classes
-	$keys = array('bg', 'comment', 'default', 'html', 'keyword', 'string');
-	foreach ( $keys as $k ) {
-		$find[] = 'style="color: ' . ini_get("highlight.$k") . '"';
-		$replace[] = "class=\"php_$k\"";
-	}
-	$find[] = '<code>';
-	$find[] = '</code>';
 	$raw_code = trim(_soo_plugin_field('code'));
-	
-	$start_line = 1;
 	$match_index = 2;
 	$safety_check = true;
 	
@@ -268,30 +263,57 @@ function soo_plugin_code( $atts ) {
 	}
 	
 	if ( isset($pattern) ) {
-		if ( preg_match($pattern, $raw_code, $match) ) {
-			$raw_code = $match[$match_index];
-			
-				// if not reindexing, find starting line number in full source code
-			$start_line = $reindex_lines ? 
-				$reindex_lines : count(explode("\n", $match[1]));
-		}
-		else 
-			return;
+		if ( ! preg_match($pattern, $raw_code, $match) ) return;
+		$raw_code = $match[$match_index];
+			// if not reindexing, find starting line number in full source code
+		$start_line = $reindex_lines ? 
+			$reindex_lines : count(explode(n, $match[1]));
 	}
 	
-		// convert tabs to spaces
-	$lines = _soo_detab(explode("\n", $raw_code), $tab_stop);
+		// convert tabs to spaces, retaining tab stop alignment
+	foreach ( explode(n, $raw_code) as $line ) {
+		$bucket = array();
+		foreach ( str_split($line) as $char )
+			if ( $char == t ) {
+				$add = $tab_stop - fmod(count($bucket), $tab_stop);
+				while ( $add ) {
+					$bucket[] = ' ';
+					$add --;
+				}
+			}
+			else
+				$bucket[] = $char;
+		$lines[] = implode('', $bucket);	
+	}
 	
+	if ( ! $highlight )
+		return implode(n, array_map('htmlspecialchars', $lines));
+
+	$find = array(sp, br, '<code>', '</code>');
+	$replace = array(' ', n, '', '');
+		// names of code highlight types from ini_get()
+		// highlight_string() output style attributes will be replaced by named classes
+	foreach ( array('bg', 'comment', 'default', 'html', 'keyword', 'string') as $k ) {
+		$find[] = 'style="color: ' . ini_get("highlight.$k") . '"';
+		$replace[] = "class=\"php_$k\"";
+	}
+	
+	$start_line = 1;
+	
+		// run highlight_string(), clean up
+	$h_s = highlight_string("<?php\n" . implode(n, $lines) . "\n?>", true);
+	$lines = str_replace($find, $replace, explode(br, $h_s));
+	array_shift($lines);
+	$lines[0] = '<span class="php_html">' . $lines[0];
+	array_pop($lines);
+	$lines[count($lines)-1] .= '</span>';
+	
+		// add line numbers
 	$total_lines = $start_line + count($lines) - 1;
 	foreach ( $lines as $i => $line ) {
-		if ( preg_match('/\S/', $line) )
-			$line = preg_replace(
-				'/&lt;\?php&nbsp;([\s\S]*)&nbsp;<\/span><span[^>]*>\?&gt;/', '$1',
-				str_replace($find, $replace, 
-					highlight_string("<?php " . $line . " ?>", true)));
 		if ( $show_line_numbers ) {
 			$i += $start_line;
-			$line = "$i $show_line_numbers $line";
+			$line = "<span class=\"php_comment\">$i $show_line_numbers</span> $line";
 			if ( $i < 1000 and $total_lines > 999 ) $line = sp . $line;
 			if ( $i < 100 and $total_lines > 99 ) $line = sp . $line;
 			if ( $i < 10 ) $line = sp . $line;
@@ -301,7 +323,7 @@ function soo_plugin_code( $atts ) {
 	
 	$tag_atts = ( $class ? " class=\"$class\"" : '' ) . ( $html_id ? " id=\"$html_id\"" : '' );
 	
-	return "<code$tag_atts>" . implode("<br />\n", $code) . '</code>';
+	return "<pre$tag_atts><code$tag_atts>" . implode(n, $code) . '</code></pre>';
 }
 
   //---------------------------------------------------------------------//
@@ -319,26 +341,6 @@ function _soo_plugin_field( $field, $atts = null ) {
 		$out = $soo_plugin_display[$field];
 		return ( ! empty($link) and $author_uri ) ? href($out, $author_uri) : $out;
 	}
-}
-
-	// convert tabs to spaces, aligned to tab stops
-function _soo_detab( $lines, $tab_stop ) {
-	$out = array();
-	foreach ( $lines as $line ) {
-		$bucket = array();
-		foreach ( str_split($line) as $char )
-			if ( $char == t ) {
-				$add = $tab_stop - fmod(count($bucket), $tab_stop);
-				while ( $add ) {
-					$bucket[] = ' ';
-					$add --;
-				}
-			}
-			else
-				$bucket[] = $char;
-		$out[] = implode('', $bucket);
-	}
-	return $out;
 }
 
 # --- END PLUGIN CODE ---
@@ -498,15 +500,23 @@ pre. <txp:soo_plugin_code />
 
 h4. Attributes
 
-* @show_line_numbers@ _(text)_ If set, text to append to each line number. If blank, do not show line numbers. %(default)default% ":" (can be changed in prefs).
-* @reindex_lines@ _(integer)_ With @function@ and/or @php_class@, renumber lines starting from the value given. %(default)Default% "0", do not reindex.
+* @class@ _(html class name)_ for wrapping &lt;code&gt; and &lt;pre&gt; elements
+* @html_id@ _(html id name)_ for wrapping &lt;code&gt; and &lt;pre&gt; elements
 * @tab_stop@ _(integer)_ length of tab stop
 * @function@ _(text)_ Show only this function. Use in combination with @php_class@ to show only this method.
 * @php_class@ _(text)_ Show only this PHP class
-* @class@ _(html class name)_ for &lt;code&gt; element
-* @html_id@ _(html id name)_ for &lt;code&gt; element
+* @highlight@ _(boolean)_ whether or not to add syntax highlighting to output. %(default)Default% "1", add highlighting (can be changed in prefs).
+
+The remaining attributes are effective only when highlighting is enabled.
+
+* @show_line_numbers@ _(text)_ If set, text to append to each line number. If blank, do not show line numbers. %(default)default% ":" (can be changed in prefs).
+* @reindex_lines@ _(integer)_ With @function@ and/or @php_class@, renumber lines starting from the value given. %(default)Default% "0", do not reindex. 
 
 The function/class search isn't thorough, and is based on my coding style. In the case of a function (outside a class) or class, it simply stops at the first non-indented closing brace ("}") that occurs after the function or class name. Same for a method (function inside a class) but with the closing brace indented one tab.
+
+Tabs are converted to spaces, to stay aligned with tab stops as set in plugin preferences or the @tag_stop@ attribute.
+
+h5. Highlighting
 
 The code highlighting is based on the PHP @highlight_string()@ function. The @style@ declarations produced by @highlight_string()@ are replaced by @class@ declarations. The important ones:
 
@@ -515,9 +525,9 @@ The code highlighting is based on the PHP @highlight_string()@ function. The @st
 * @php_default@ function names (including core PHP functions)
 * @php_string@ strings
 
-Everything but the line numbers will be in a @span@ with one of those class names. The whole thing is wrapped in a @code@ element.
+Everything will be in a @span@ with one of those class names. The whole thing is wrapped in a @code@ element.
 
-Tabs are converted to spaces, to stay aligned with tab stops as set in plugin preferences or the @tag_stop@ attribute.
+If you prefer to use javascript-based highlighting, such as the excellent "SyntaxHighlighter":http://alexgorbatchev.com/SyntaxHighlighter/, set @highlight="0"@ (or do this in prefs) to get raw (although still HTML-escaped) code output. In this case line numbers will not be added.
 
 h2(#examples). Examples
 
@@ -559,23 +569,31 @@ If you have the "soo_plugin_pref":http://ipsedixit.net/txp/92/soo_plugin_pref pr
 * Default value for @soo_plugin_help@'s @strip_style@ attribute
 * Default value for @soo_plugin_help@'s @strip_title@ attribute
 * Default value for @soo_plugin_size@'s @format@ attribute
+* Default value for @soo_plugin_code@'s @highlight@ attribute
 * Default value for @soo_plugin_code@'s @show_line_numbers@ attribute
 * Default value for @soo_plugin_code@'s @tab_stop@ attribute
 
 h2(#history). Version History
 
-h3. 0.1.4 (7/4/2010, USA Independence Day)
+h3. 0.2.0 (7/11/2010)
 
-@soo_plugin_help@ output can have HTML header levels transposed, using the @h_plus@ attribute
+* New @highlight@ attribute for @soo_plugin_code@, allows you to disable the standard syntax highlighting and output raw (but HTML-escaped) code.
+* Bug fix: @soo_plugin_code@ now handles multi-line comments correctly.
+
+%(warning)Note:% If you are upgrading from an earlier version, note that @soo_plugin_code@ has some other format changes (e.g., highlighted output is now wrapped in a @pre@ element), so some CSS changes might be needed.
+
+h3. 0.1.4 (7/4/2010)
+
+* @soo_plugin_help@ output can have HTML header levels transposed, using the @h_plus@ attribute
 
 h3. 0.1.3 (9/27/2009)
 
-For @soo_plugin_code@, tab to space conversion now maintains tab-stop alignment
+* For @soo_plugin_code@, tab to space conversion now maintains tab-stop alignment
 
 h3. 0.1.2 (9/26/2009)
 
-New attribute for @soo_plugin_help@:
-* @section_id@, start output from header element with specified HTML id, continuing until next header element with same or lower level
+* New attribute for @soo_plugin_help@:
+** @section_id@, start output from header element with specified HTML id, continuing until next header element with same or lower level
 
 h3. 0.1.1 (9/22/2009)
 
@@ -583,12 +601,12 @@ h3. 0.1.1 (9/22/2009)
 
 h3. 0.1 (9/18/2009)
 
-Display most fields straight from the @txp_plugin@ table. Also,
-* plugin name or author name can be automatically linked to plugin author's website
-* @soo_plugin_help@ has options for stripping title and style first
-* @soo_plugin_size@ shows installed code size
-* @soo_plugin_code@ can display complete code or by function/class
-* compatible with *soo_plugin_pref* preference management system
+* Display most fields straight from the @txp_plugin@ table. Also,
+** plugin name or author name can be automatically linked to plugin author's website
+** @soo_plugin_help@ has options for stripping title and style first
+** @soo_plugin_size@ shows installed code size
+** @soo_plugin_code@ can display complete code or by function/class
+** compatible with *soo_plugin_pref* preference management system
 
  </div>
 # --- END PLUGIN HELP ---

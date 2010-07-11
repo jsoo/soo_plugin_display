@@ -219,7 +219,7 @@ function soo_plugin_size( $atts ) {
 function soo_plugin_code( $atts ) {
 	global $soo_plugin_display_prefs;
 	extract(lAtts(array(
-		'highlight'				=>	1,
+		'highlight'				=>	$soo_plugin_display_prefs['highlight'],
 		'show_line_numbers'		=>	$soo_plugin_display_prefs['show_line_numbers'],
 		'reindex_lines'			=>	0,
 		'tab_stop'				=>	$soo_plugin_display_prefs['tab_stop'],

@@ -1,7 +1,7 @@
 <?php
 
 $plugin['name'] = 'soo_plugin_display';
-$plugin['version'] = '0.2.0';
+$plugin['version'] = '0.2.1';
 $plugin['author'] = 'Jeff Soo';
 $plugin['author_uri'] = 'http://ipsedixit.net/txp/';
 $plugin['description'] = 'Display info about installed plugins';
@@ -236,7 +236,7 @@ function soo_plugin_code( $atts ) {
 		// find named method: assumes end brace one tab in from start of line
 	if ( $php_class and $function ) {
 		$pattern = '/([\s\S]*(abstract|)\s*class\s+' 
-			. $php_class . '\s+.*?\{[\s\S]+?)(\t(public|private|protected)?\s*function\s+' 
+			. $php_class . '\s+[\s\S]*?\{[\s\S]+?)(\t(public|private|protected)?\s*function\s+' 
 			. $function . '\s*\([\s\S]+?\n\t}.*)[\s\S]*/';
 		$match_index ++;
 	}
@@ -249,7 +249,7 @@ function soo_plugin_code( $atts ) {
 		// find named class: assumes end brace at start of line
 	elseif ( $php_class )
 		$pattern = '/([\s\S]*?)((abstract|)\s*class\s+' 
-			. $php_class . '\s+.*?\{[\s\S]+?\n}.*)[\s\S]*/';
+			. $php_class . '\s+[\s\S]*?\{[\s\S]+?\n}.*)[\s\S]*/';
 	
 	else
 		$safety_check = false;
@@ -574,6 +574,10 @@ If you have the "soo_plugin_pref":http://ipsedixit.net/txp/92/soo_plugin_pref pr
 * Default value for @soo_plugin_code@'s @tab_stop@ attribute
 
 h2(#history). Version History
+
+h3. 0.2.1 (9/17/2010)
+
+* Improved function/class pattern matching in @soo_plugin_code@.
 
 h3. 0.2.0 (7/11/2010)
 

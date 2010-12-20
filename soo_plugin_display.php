@@ -1,7 +1,7 @@
 <?php
 
 $plugin['name'] = 'soo_plugin_display';
-$plugin['version'] = '0.2.1';
+$plugin['version'] = '0.2.2';
 $plugin['author'] = 'Jeff Soo';
 $plugin['author_uri'] = 'http://ipsedixit.net/txp/';
 $plugin['description'] = 'Display info about installed plugins';
@@ -20,23 +20,23 @@ if (!defined('txpinterface'))
  //						soo_plugin_pref compatibility					//
 //---------------------------------------------------------------------//
 
-
-global $soo_plugin_display_prefs;
-
 @require_plugin('soo_plugin_pref');				// optional
-add_privs('plugin_prefs.soo_plugin_display','1,2');
-add_privs('plugin_lifecycle.soo_plugin_display','1,2');
-register_callback('soo_plugin_display_prefs', 'plugin_prefs.soo_plugin_display');
-register_callback('soo_plugin_display_prefs', 'plugin_lifecycle.soo_plugin_display');
 
-	// load prefs if soo_plugin_pref enabled, else load defaults
-$soo_plugin_display_prefs = function_exists('soo_plugin_pref_vals') ? 
-	soo_plugin_pref_vals('soo_plugin_display') : array();
-foreach ( soo_plugin_display_defaults() as $name => $arr )
-		// just in case prefs/defaults do not match;
-		// might happen if plugin upgraded while soo_plugin_pref disabled
-	if ( ! array_key_exists($name, $soo_plugin_display_prefs) )
-		$soo_plugin_display_prefs[$name] = $arr['val'];
+// Plugin init not needed on admin side
+if ( @txpinterface == 'public' )
+{
+	global $soo_plugin_display_prefs;
+	$soo_plugin_display_prefs = function_exists('soo_plugin_pref_vals') ? 
+		array_merge(soo_plugin_display_defaults(true), soo_plugin_pref_vals('soo_plugin_display')) 
+		: soo_plugin_display_defaults(true);
+}
+elseif ( @txpinterface == 'admin' ) 
+{
+	add_privs('plugin_prefs.soo_plugin_display','1,2');
+	add_privs('plugin_lifecycle.soo_plugin_display','1,2');
+	register_callback('soo_plugin_display_prefs', 'plugin_prefs.soo_plugin_display');
+	register_callback('soo_plugin_display_prefs', 'plugin_lifecycle.soo_plugin_display');
+}
 
 	// callback for plugin_prefs/plugin_lifecycle events
 function soo_plugin_display_prefs( $event, $step ) {
@@ -53,8 +53,8 @@ function soo_plugin_display_prefs( $event, $step ) {
 	}
 }
 
-function soo_plugin_display_defaults( ) {
-	return array(
+function soo_plugin_display_defaults( $vals_only = false ) {
+	$defaults = array(
 		'default_form'		=>	array(
 			'val'	=>	'',
 			'html'	=>	'text_input',
@@ -91,6 +91,10 @@ function soo_plugin_display_defaults( ) {
 			'text'	=>	'Spaces per tab in plugin code',
 		),
 	);
+	if ( $vals_only )
+		foreach ( $defaults as $name => $arr )
+			$defaults[$name] = $arr['val'];
+	return $defaults;
 }
 
   //---------------------------------------------------------------------//
@@ -574,6 +578,10 @@ If you have the "soo_plugin_pref":http://ipsedixit.net/txp/92/soo_plugin_pref pr
 * Default value for @soo_plugin_code@'s @tab_stop@ attribute
 
 h2(#history). Version History
+
+h3. 0.2.2 (12/20/2010)
+
+* Code cleaning only
 
 h3. 0.2.1 (9/17/2010)
 

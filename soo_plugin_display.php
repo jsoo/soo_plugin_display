@@ -1,7 +1,7 @@
 <?php
 
 $plugin['name'] = 'soo_plugin_display';
-$plugin['version'] = '0.2.3';
+$plugin['version'] = '0.2.4';
 $plugin['author'] = 'Jeff Soo';
 $plugin['author_uri'] = 'http://ipsedixit.net/txp/';
 $plugin['description'] = 'Display info about installed plugins';
@@ -14,6 +14,20 @@ $plugin['flags'] = PLUGIN_HAS_PREFS | PLUGIN_LIFECYCLE_NOTIFY;
 defined('txpinterface') or @include_once('zem_tpl.php');
 
 # --- BEGIN PLUGIN CODE ---
+
+if(class_exists('\Textpattern\Tag\Registry')) {
+	Txp::get('\Textpattern\Tag\Registry')
+		->register('soo_plugin_display')
+		->register('soo_plugin_author_uri')
+		->register('soo_plugin_version')
+		->register('soo_plugin_description')
+		->register('soo_plugin_author')
+		->register('soo_plugin_name')
+		->register('soo_plugin_help')
+		->register('soo_plugin_size')
+		->register('soo_plugin_code')
+		;
+}
 
 @require_plugin('soo_plugin_pref');				// optional
 
@@ -593,6 +607,10 @@ If you have the "soo_plugin_pref":http://ipsedixit.net/txp/92/soo_plugin_pref pr
 * Default value for @soo_plugin_code@'s @tab_stop@ attribute
 
 h2(#history). Version History
+
+h3. 0.2.4 (2017-02-15)
+
+* Textpattern 4.6 compatibility update
 
 h3. 0.2.2 (12/20/2010), 0.2.3 (12/27/2010)
 

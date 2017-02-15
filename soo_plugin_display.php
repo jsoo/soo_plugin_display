@@ -35,8 +35,8 @@ if ( @txpinterface == 'admin' )
 {
 	add_privs('plugin_prefs.soo_plugin_display','1,2');
 	add_privs('plugin_lifecycle.soo_plugin_display','1,2');
-	register_callback('soo_plugin_display_prefs', 'plugin_prefs.soo_plugin_display');
-	register_callback('soo_plugin_display_prefs', 'plugin_lifecycle.soo_plugin_display');
+	register_callback('soo_plugin_display_manage_prefs', 'plugin_prefs.soo_plugin_display');
+	register_callback('soo_plugin_display_manage_prefs', 'plugin_lifecycle.soo_plugin_display');
 }
 
 function soo_plugin_display_manage_prefs( $event, $step )
